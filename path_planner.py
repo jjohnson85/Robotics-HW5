@@ -2,6 +2,7 @@
 
 import rospy
 import numpy as np
+import Queue
 from nav_msgs.msg import OccupancyGrid
 from PIL import Image
 
@@ -46,23 +47,29 @@ def tracepath( cX, cY, worldmap ):
 
 def wavefront( stX, stY, cX, cY, mark, worldmap ):
 
-    if( cY == stY and cX == stX ):
-        worldmap[cY][cX] = mark
-        print( "Hello World" )
-        return worldmap
+    WaveQueue = Queue.Queue() 
+    WaveQueue.put( (cX, cY) )
+    tup = (cX, cY)
 
-    if( worldmap[cY][cX] == 0 ):
-        #print( "Je;" )
-        worldmap[cY][cX] = mark
+    while( not WaveQueue.empty( ) ):
 
-    for i in range( -1, 1 ):
-        for j in range( -1, 1 ):
-            if( not( abs( cY+i ) > 200 or abs(cX+j) > 200 )):
+        cX = tup[0]
+        cY = tup[1]
 
-                if( worldmap[cY+i][cX+j] == 0 and not (i == 0 and j == 0)):
-                    worldmap = wavefront( stX, stY, cX+j, cY+i, mark+1, worldmap ) 
+        for i in range( -1, 2 ):
+            for j in range( -1, 2 ):
+                if( not( abs( cY+i ) > 200 or abs(cX+j) > 200 )):
+                    if( worldmap[cY+i][cX+j] == 0 and not (i == 0 and j == 0)):
+                        WaveQueue.put( (cX+j, cY+i) )
+                        worldmap[cY+i][cX+j] = mark
 
-    #print( worldmap[cY][cX] , " " , cY, " ", cX)
+        tup = WaveQueue.get( )
+        mark = mark + 1
+
+        if( tup[1] == stY and tup[0] == stX ):
+            worldmap[stY][stX] = mark
+            break        
+
     return worldmap
 
 def readmap( msg ):
@@ -108,15 +115,21 @@ while message == 0:
     i = i + 1
 
 worldmap = readmap( message )
-print( worldmap[170][120] )
+print( worldmap[169][79] )
 worldmap = brushfire( worldmap )
 worldmap = brushfire( worldmap )
-#worldmap = brushfire( worldmap )
+worldmap = brushfire( worldmap )
+
+#for z in range(0, 200):
+ #   for j in range(0, 200):
+  #      if( worldmap[z][j] == 0 ):
+   #        worldmap[z][j] = 300
+
+worldmap = wavefront( 99, 99, 169, 79, 1, worldmap )
 
 
-worldmap = wavefront( 100, 100, 170, 120, 1, worldmap )
-print( worldmap[169][119] )
-worldmap = tracepath( 170, 120, worldmap )
+print( worldmap[79][169] )
+worldmap = tracepath( 169, 79, worldmap )
 img = Image.fromarray( worldmap )
 
 img.show( )
