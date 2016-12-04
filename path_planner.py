@@ -32,14 +32,43 @@ def brushfire( worldmap ):
     return worldmap
 
 def tracepath( cX, cY, worldmap ):
+    
+    selectionList = []
+    while( worldmap[cY][cX] != 1 ):
+        del selectionList[:]
+        bestPoint = (0, 0, 0 )
+        lowestPoint = (0, 0, 0)
+        highestPoint = (0, 0, 0)
+        currPoint = worldmap[cY][cX]
 
-    for i in range( -1, 1 ):
-        for j in range( -1, 1 ):
-            if( worldmap[cY+i][cX+j] < worldmap[cY][cX] ): 
+        for i in range( -1, 2 ):
+            for j in range( -1, 2 ):
+                if( abs(cY+i) < 200 and abs(cX+j) < 200 ):
+                    point = worldmap[cY+i][cX+j]
+                    if( point < worldmap[cY][cX] and point > 0 and point != 100 ):
 
-                worldmap[cY][cX] = -1
-                tracepath( cX+j, cY+i, worldmap )
-                
+                        selectionList.append( (point, i, j ) )
+
+        for value in selectionList:
+            if( value[0] < lowestPoint[0] ):
+                lowestPoint = value
+            if( value[0] > highestPoint[0] ):
+                highestPoint = value
+
+        for value in selectionList:
+
+            if( len( selectionList) == 1 ):
+                bestPoint = value
+
+            bestPoint =value
+
+        worldmap[cY][cX] = -2
+        i = bestPoint[1]
+        j = bestPoint[2]
+        cX, cY = cX+j, cY+i
+                        
+        print cX, cY, point
+
 
     return worldmap
 
@@ -118,7 +147,7 @@ worldmap = readmap( message )
 print( worldmap[169][79] )
 worldmap = brushfire( worldmap )
 worldmap = brushfire( worldmap )
-worldmap = brushfire( worldmap )
+#worldmap = brushfire( worldmap )
 
 #for z in range(0, 200):
  #   for j in range(0, 200):
@@ -129,12 +158,10 @@ worldmap = wavefront( 99, 99, 169, 79, 1, worldmap )
 
 
 print( worldmap[79][169] )
-worldmap = tracepath( 169, 79, worldmap )
+worldmap = tracepath( 99, 99, worldmap )
 img = Image.fromarray( worldmap )
 
 img.show( )
-
-
 
 while not rospy.is_shutdown():
     i = i + 1
