@@ -4,16 +4,22 @@ import rospy
 import numpy as np
 import Queue
 from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped
 from PIL import Image
 
 def isNeighbor( worldmap, x, y ):
-    for i in range( -1, 1 ):
-        for j in range( -1, 1 ):
-            if( i == 0 and j == 0 ):
-                break
-            else:
-                if( worldmap[y+i][x+j] == 100 ):
-                    return True
+    for i in range( -1, 2 ):
+        for j in range( -1, 2 ):
+            if( worldmap[y][x] == 0 ):
+                if( i == 0 and j == 0 ):
+                    continue
+                else:
+                    if( worldmap[y+i][x+j] == 100 ):
+                        return True
+            
+                    elif( worldmap[y+i][x+j] == -1 ):
+                        return True
 
     return False
 
@@ -21,7 +27,9 @@ def brushfire( worldmap ):
 
     for i in range( 0, 200 ):
         for j in range( 0, 200):
-            if( isNeighbor(worldmap, j, i) and worldmap[i][j] != 100 ):
+            #print( worldmap[i][j] )
+            if( isNeighbor(worldmap, j, i) ):
+
                 worldmap[i][j] = 101
 
     for i in range( 0, 200 ):
@@ -33,10 +41,16 @@ def brushfire( worldmap ):
 
 def tracepath( cX, cY, worldmap ):
     
+    pmsg = Path()
+
+    # important!
+    pmsg.header.frame_id = "map"
+    
+
     selectionList = []
     while( worldmap[cY][cX] != 1 ):
         del selectionList[:]
-        bestPoint = (0, 0, 0 )
+        bestPoint = (100000, 0, 0 )
         lowestPoint = (0, 0, 0)
         highestPoint = (0, 0, 0)
         currPoint = worldmap[cY][cX]
@@ -60,17 +74,22 @@ def tracepath( cX, cY, worldmap ):
             if( len( selectionList) == 1 ):
                 bestPoint = value
 
-            bestPoint =value
+            if( value[0] < bestPoint[0]):
+                bestPoint = value
+
 
         worldmap[cY][cX] = -2
         i = bestPoint[1]
         j = bestPoint[2]
         cX, cY = cX+j, cY+i
+        p = PoseStamped()
+        p.pose.position.x = float((cX-100)/10.0)
+        p.pose.position.y = float(-(cY-100)/10.0)
+        pmsg.poses.append(p)
                         
-        print cX, cY, point
 
 
-    return worldmap
+    return pmsg
 
 
 
@@ -122,19 +141,18 @@ def readmap( msg ):
 
 def mapcallback(msg):
     global message
-    print "----- New Map -----"
-    print "Width: ", msg.info.width
-    print "Height: ", msg.info.height
-    print "Resolution: ", msg.info.resolution
-    print "Origin: \n", msg.info.origin
-
     message = msg
     
 
-# Start a ROS node.
-rospy.init_node('map_read_test')
-# Subscribe to the map topic
+#Start a ROS node.
+rospy.init_node('path_planner')
+
+#Subscribe to the map topic
 rospy.Subscriber("map", OccupancyGrid, mapcallback)
+
+#Publish a path on the "path" topic
+pub = rospy.Publisher("path", Path, queue_size=10)
+rate = rospy.Rate(10) #10 hz
 
 global message
 message = 0
@@ -143,25 +161,18 @@ i = 0
 while message == 0:
     i = i + 1
 
+pmsg = Path()
 worldmap = readmap( message )
-print( worldmap[169][79] )
 worldmap = brushfire( worldmap )
-worldmap = brushfire( worldmap )
-#worldmap = brushfire( worldmap )
 
-#for z in range(0, 200):
- #   for j in range(0, 200):
-  #      if( worldmap[z][j] == 0 ):
-   #        worldmap[z][j] = 300
+worldmap = wavefront( 100, 100, 170, 80, 1, worldmap )
 
-worldmap = wavefront( 99, 99, 169, 79, 1, worldmap )
-
-
-print( worldmap[79][169] )
-worldmap = tracepath( 99, 99, worldmap )
-img = Image.fromarray( worldmap )
-
-img.show( )
+pmsg = tracepath( 100, 100, worldmap )
+print(pmsg)
 
 while not rospy.is_shutdown():
-    i = i + 1
+    
+    pub.publish( pmsg )
+    rate.sleep( )
+
+
