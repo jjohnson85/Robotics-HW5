@@ -2,6 +2,8 @@ import rospy
 from geometry_msgs.msg import Pose2D
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import numpy as np
+import tf
+from geometry_msgs.msg import PoseStamped
 
 # Documentation for this message type:
 # http://docs.ros.org/kinetic/api/geometry_msgs/html/msg/Pose2D.html
@@ -17,6 +19,7 @@ rospy.init_node('gps_filter')
 rospy.Subscriber("gps", Pose2D, posecallback)
 rospy.Subscriber("cmd_joint_traj", JointTrajectory, velcallback ) 
 pub = rospy.Publisher("filtered_gps", Pose2D, queue_size = 10 )
+pubrviz = rospy.Publisher("pose_filtered", PoseStamped, queue_size = 10 )
 rate = rospy.Rate(10)
 
 global posemessage, velmessage
@@ -30,16 +33,19 @@ while( posemessage == 0 or velmessage == 0 ):
 
 #Initial values
 pose = Pose2D( )
+msg = PoseStamped( )
+msg.header.frame_id = "map"
 
-V = np.array([[0.2,0,0],[0,0.2,0],[0,0,0.2]])
+W = np.array([[0.2,0,0],[0,0.2,0],[0,0,0.2]])
 
-W = P = np.array([[0,0,0],[0,0,0],[0,0,0]])
+V = np.array([[0,0,0],[0,0,0],[0,0,0]])
+P = np.array([[0.001,0,0],[0,0.001,0],[0,0,0.001]])
 
 H = np.array([[1, 0, 0],[0, 1, 0],[0, 0, 1]])
 
 xk = 0.0
 yk = 0.0
-tk = posemessage.theta
+tk = 0.0
 
 r = 0.05
 L = 0.15
@@ -62,12 +68,14 @@ while not rospy.is_shutdown():
 
     #Predictive update given control input
     xhat = np.array([[xupdate],[yupdate],[tupdate]]) 
-
+    print( xhat, phi1, phi2 )
     #Predictive covariance
-    P = Fk.dot(P.dot(FkT)) + V
+    P = Fk.dot(P.dot(FkT) ) + V
+    print( P )
 
     #Kalman Gain
-    K = P.dot( np.linalg.inv(P) )
+    K = P.dot( np.linalg.inv( P + W ) )
+    print( K )
 
     #Fetch observation
     xk = posemessage.x
@@ -75,9 +83,10 @@ while not rospy.is_shutdown():
     tk = posemessage.theta
 
     z = np.array([[xk],[yk],[tk]])
+
     print( xhat )
     xhat = xhat + K.dot(z - xhat)
-
+    print( xhat )
     P = (H - K).dot(P)
 
     #Update x,y,theta values with pose estimate and publish them
@@ -85,7 +94,22 @@ while not rospy.is_shutdown():
     pose.y = yk = xhat[1][0]
     pose.theta = tk = xhat[2][0]
     print(pose)
+
+    # Publish Position (1,0)
+    msg.pose.position.x = xk
+    msg.pose.position.y = yk
+
+    # Publish theta = pi/4
+    # We need to convert from euler coordinates to a quaternion.
+    quaternion = tf.transformations.quaternion_from_euler(0,0,tk)
+    msg.pose.orientation.x = quaternion[0]
+    msg.pose.orientation.y = quaternion[1]
+    msg.pose.orientation.z = quaternion[2]
+    msg.pose.orientation.w = quaternion[3]
+
+    pubrviz.publish( msg )
     pub.publish(pose)
+    #exit( )
     rate.sleep( )
 
     
