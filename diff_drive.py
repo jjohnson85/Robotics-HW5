@@ -5,6 +5,7 @@ import time
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from geometry_msgs.msg import Pose2D
 
+
 def callbackGPS(msg):
     global x, y ,theta  
     x = msg.x
