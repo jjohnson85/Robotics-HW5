@@ -10,7 +10,7 @@ currPose = Pose()
 
 r = 0.5
 L = .15/2+.02/2
-speed = 0.5
+speed = 1
 def getTheta(x,y):
     oldTh = currPose.th
     return m.acos((x*m.cos(oldTh) + y*m.sin(oldTh))/(m.sqrt(x*x+y*y)))
@@ -62,7 +62,8 @@ def driveToPoint(newX,newY):
         phi1 = dotphi1[k]
         phi2 = dotphi2[k]
         publishVelocities(phi1,phi2)
-        rate.sleep()
+        time.sleep(0.1)
+        #rate.sleep()
 
 
 rospy.init_node('drive_robot')

@@ -37,7 +37,7 @@ def setABCD():
     d = -yd1*(t1-t0) + (y1 - y0)
 
 def setTime():
-    global t0, t1, speed, dt, xdot, t
+    global t0, t1, speed, dt, zdot, t
     dist = sqrt((x0-x1)**2.0 + (y0-y1)**2.0)
     t0 = 0
     t1 = dist/speed
@@ -61,8 +61,7 @@ def yf(t):
 
 def dxf(t):
     global x1, x0, a, b
-    tr = x1 - x0
-    tr = tr + (1.0-2.0*z(t))*(a*(1.0-z(t)) + b*z(t))
+    tr = x1 - x0 + (1.0-2.0*z(t))*(a*(1.0-z(t)) + b*z(t))
     tr = tr + z(t)*(1.0-z(t))*(b-a)
     tr = tr * zdot
     return tr
@@ -117,11 +116,10 @@ def GetTheta(inX0,inY0,inX1,inY1,inXd0,inYd0, inSpeed):
     #plt.show()
 
     v = np.sqrt(dxf(t)*dxf(t) + dyf(t)*dyf(t))
-    print dxf(t), dyf(t)
     kappa = (dxf(t)*ddyf(t) - dyf(t*ddxf(t)))/(v*v*v)
     dotphi1 = (v/r)*( kappa + 1)
     dotphi2 = (v/r)*(-kappa + 1)
-
+    print v
     return dotphi1, dotphi2
 
 #GetTheta(0.0,0.0,3.0,2.0,1.0,0.0, 4.0)
