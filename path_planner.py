@@ -8,6 +8,11 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from PIL import Image
 
+
+###path_planner.py###
+
+    #Author Jared Johnson
+
 def isNeighbor( worldmap, x, y ):
     for i in range( -1, 2 ):
         for j in range( -1, 2 ):
@@ -164,10 +169,11 @@ while message == 0:
 pmsg = Path()
 worldmap = readmap( message )
 worldmap = brushfire( worldmap )
+worldmap = brushfire( worldmap )
 
-worldmap = wavefront( 100, 100, 170, 80, 1, worldmap )
+worldmap = wavefront( 101, 100, 170, 80, 1, worldmap )
 
-pmsg = tracepath( 100, 100, worldmap )
+pmsg = tracepath( 101, 100, worldmap )
 print(pmsg)
 
 while not rospy.is_shutdown():

@@ -5,8 +5,10 @@ import numpy as np
 import tf
 from geometry_msgs.msg import PoseStamped
 
-# Documentation for this message type:
-# http://docs.ros.org/kinetic/api/geometry_msgs/html/msg/Pose2D.html
+### gps_filter
+
+    #Author Jared Johnson
+
 def posecallback(msg):
     global posemessage
     posemessage = msg
@@ -98,6 +100,8 @@ while not rospy.is_shutdown():
     # Publish Position (1,0)
     msg.pose.position.x = xk
     msg.pose.position.y = yk
+    
+
 
     # Publish theta = pi/4
     # We need to convert from euler coordinates to a quaternion.
